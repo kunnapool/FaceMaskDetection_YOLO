@@ -39,3 +39,15 @@ class FrontCam(threading.Thread):
     def stop_cam(self):
         self.capture.release()
         cv2.destroyAllWindows()
+    
+# def main():
+#     vc = FrontCam()
+#     vc.start()
+
+#     while True:
+#         f = vc.get_frame()
+#         if f is not None:
+#             cv2.imshow("Frame", f)
+#             cv2.waitKey(1)
+
+# main()
