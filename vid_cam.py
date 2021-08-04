@@ -39,7 +39,9 @@ class FrontCam(threading.Thread):
     def stop_cam(self):
         self.capture.release()
         cv2.destroyAllWindows()
-    
+
+# this is just an example of how to import and setup the FrontCam class
+# and how to get frames from it. It is meant to be imported as from vid_cam import FrontCam
 def main():
     vc = FrontCam()
     vc.start()
