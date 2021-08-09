@@ -1,24 +1,6 @@
 import numpy as np
-from helpers import iou # TODO Do I need this?
+from helpers import iou
 import math
-
-
-def sse(x, y):
-
-    s = 0
-    for i in range(x):
-        s += (x[i] - y[i])**2
-
-    return s
-
-
-def _get_sqrt(x):
-    l = []
-    for xi in x:
-        l.append(math.sqrt(xi))
-    
-    return l
-
 
 def loss(pred, target, B=2, S=13):
     """
@@ -40,10 +22,11 @@ def loss(pred, target, B=2, S=13):
         end = 5
         max_bb = []
         max_iou = -1
+        best_conf = -1 # confidence of the best box
 
         # get the BB with the box prob
         for b in range(B):
-            x1, y1, x2, y2, p = arr[st: end]
+            x1, y1, x2, y2, conf = arr[st: end]
             st = end
             end += 5
 
@@ -53,8 +36,9 @@ def loss(pred, target, B=2, S=13):
             if i > max_iou:
                 max_bb = bb
                 max_iou = i
+                best_conf = conf
         
-        return max_bb
+        return max_bb, max_iou, best_conf
 
     lmbda = 0.5
 
@@ -63,7 +47,7 @@ def loss(pred, target, B=2, S=13):
     l3 = 0
     l4 = 0
 
-    # iterate over each grid (per one image)
+    # iterate over each grid (per image)
     for s1 in range(S):
         for s2 in range(S):    
             # this should have B instances of [x1, y1, x2, y2, conf]
@@ -71,21 +55,23 @@ def loss(pred, target, B=2, S=13):
 
             arr = pred[s1, s2]
             arr2 = target[s1, s2]
-            x1, y1, x2, y2, _ = arr2
+            x1, y1, x2, y2, gd_conf = arr2
             t_bb = [x1, y1, x2, y2]
 
             # TODO check if there are any boxes at all
-            best_bb = get_best_box(arr)
+            # TODO_UPDATE - this might not be needed as every grid predicts B number of BBs
+            best_bb, best_iou, pred_conf = get_best_box(arr)
 
             x1, y1, x2, y2 = best_bb
 
             # The BB with the highest IOU (with the GD) will be the box responsible
             # for detecting
 
-            l1 += (x1 - t_bb[0])**2 + \
-                  (x2 - t_bb[2])**2 + \
-                  (y1 - t_bb[1])**2 + \
-                  (y2 - t_bb[3])**2
+            if gd_conf != 0:
+                l1 += (x1 - t_bb[0])**2 + \
+                    (x2 - t_bb[2])**2 + \
+                    (y1 - t_bb[1])**2 + \
+                    (y2 - t_bb[3])**2
 
             bb_h = abs(y1 - y2)
             bb_w = abs(x1 - x2)
@@ -93,8 +79,23 @@ def loss(pred, target, B=2, S=13):
             t_bb_h = abs(t_bb[1] - t_bb[3])
             t_bb_w = abs(t_bb[0] - t_bb[2])
 
-            l2 += (math.sqrt(bb_h) - math.sqrt(t_bb_h))**2 + \
-                  (math.sqrt(bb_w) - math.sqrt(t_bb_w))**2
+            if gd_conf != 0:
+                l2 += (math.sqrt(bb_h) - math.sqrt(t_bb_h))**2 + \
+                    (math.sqrt(bb_w) - math.sqrt(t_bb_w))**2
+            
+            if gd_conf != 0:
+                l3 += (gd_conf - best_iou)
+            else:
+                # TODO add lambda constant here
+                l3 += (gd_conf - best_iou)
             
 
-    return 0
+            if gd_conf != 0:
+                pred_class_probs = arr[5*B:]
+                gd_class_probs = arr[5:]
+
+                for i in range(len(pred_class_probs)):
+                    l4 += (pred_class_probs[i] - gd_class_probs[i])**2
+
+
+    return (l1 + l2 + l3 + l4)
