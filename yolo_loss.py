@@ -3,7 +3,7 @@ from helpers import iou
 import math
 
 
-def get_grid_BBs(target, S=13):
+def _get_grid_BBs(target, S=13):
     """
     The incoming target variable is a list of all the
     BBs present in an image
@@ -25,6 +25,17 @@ def get_grid_BBs(target, S=13):
         grid_target[s1, s2] = [x1, y1, x2, y2, l]
 
     return grid_target
+
+def _get_softmax(x):
+    l = []
+    s = 0
+    for xi in x:
+        s += np.exp(xi)
+    
+    for xi in x:
+        l.append(xi/s)
+
+    return l
 
 
 def loss(pred, target, B=2, S=13):
@@ -67,7 +78,7 @@ def loss(pred, target, B=2, S=13):
 
     lmbda = 0.5
 
-    target = get_grid_BBs(target, S=7)
+    target = _get_grid_BBs(target, S=7)
 
     loss_1 = 0 # TODO Also update these names
     loss_2 = 0
@@ -111,21 +122,22 @@ def loss(pred, target, B=2, S=13):
                     (math.sqrt(bb_w) - math.sqrt(t_bb_w))**2
             
 
-            # TODO What should we do about these???
-            if gd_label != -1:
-                loss_3 += (gd_conf - best_iou)
-            else:
-                # TODO add lambda constant here
-                loss_3 += (gd_conf - best_iou)
+            # # TODO What should we do about these???
+            # if gd_label != -1:
+            #     loss_3 += (gd_conf - best_iou)
+            # else:
+            #     # TODO add lambda constant here
+            #     loss_3 += (gd_conf - best_iou)
             
 
             # TODO Does this operation still make sense?
+            # TODO_UPDATE now calculating cross entropy loss with softmax instead of sse
             if gd_label != -1:
-                pred_class_probs = arr[5*B:]
-                gd_class_probs = arr[5:]
+                pred_class_probs = _get_softmax(arr[5*B:])
+                gd_class_label = arr[5:]
 
-                for i in range(len(pred_class_probs)):
-                    loss_4 += (pred_class_probs[i] - gd_class_probs[i])**2
+                # -1 because all the probability goes to the gd label
+                loss_4 += -1 * math.log(pred_class_probs[gd_class_label])
 
 
     return (loss_1 + loss_2 + loss_3 + loss_4)
