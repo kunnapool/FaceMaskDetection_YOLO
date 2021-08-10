@@ -61,3 +61,19 @@ def nonmax_sup(b1, b2, b1_p, b2_p, is_midpt=False, iou_threshold=0.5):
         return -1
     
     return 0
+
+
+# https://stackoverflow.com/questions/44650888/resize-an-image-without-distortion-opencv
+def image_resize_same_aspect_ratio(image, width = -1, height = -1):
+    new_size = 0
+    h = image.shape[0]
+    w = image.shape[1]
+
+    if width == -1:
+        ratio = height / float(h)
+        new_size = (int(w * ratio), height)
+    else:
+        ratio = width / float(w)
+        new_size = (width, int(h * ratio))
+
+    return cv2.resize(image, new_size, interpolation = cv2.INTER_AREA)
