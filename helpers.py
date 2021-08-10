@@ -77,3 +77,9 @@ def image_resize_same_aspect_ratio(image, width = -1, height = -1):
         new_size = (width, int(h * ratio))
 
     return cv2.resize(image, new_size, interpolation = cv2.INTER_AREA)
+
+"""
+References:
+    https://stackoverflow.com/questions/44650888/resize-an-image-without-distortion-opencv
+    https://arxiv.org/pdf/1506.02640.pdf
+"""

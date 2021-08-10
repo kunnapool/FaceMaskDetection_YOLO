@@ -129,3 +129,11 @@ def loss(pred, target, B=2, S=13):
 
 
     return (loss_1 + loss_2 + loss_3 + loss_4)
+
+
+"""
+References:
+    https://hackernoon.com/understanding-yolo-f5a74bbc7967
+    https://towardsdatascience.com/yolov1-you-only-look-once-object-detection-e1f3ffec8a89
+    https://arxiv.org/pdf/1506.02640.pdf
+"""
