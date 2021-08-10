@@ -1,3 +1,6 @@
+import cv2
+
+
 def iou(b1, b2, is_midpt=False):
     """
     :params: b1 is the first bounding box - b1 = (x1, y1, x2, y2)
