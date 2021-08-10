@@ -2,9 +2,34 @@ import numpy as np
 from helpers import iou
 import math
 
+
+def get_grid_BBs(target, S=13):
+    """
+    The incoming target variable is a list of all the
+    BBs present in an image
+
+    Assume that the image is divided into SxS grids and figure out of
+    which grid does the BB land in
+    """
+
+    grid_target = -1*np.ones((S, S, 5))
+
+    for b in target:
+        x1, y1, x2, y2, l = b
+        mid_x = abs(x1 - x2)/2
+        mid_y = abs(y1 - y2)/2
+
+        s1 = int(mid_y/S)
+        s2 = int(mid_x/S)
+
+        grid_target[s1, s2] = [x1, y1, x2, y2, l]
+
+    return grid_target
+
+
 def loss(pred, target, B=2, S=13):
     """
-    The target/pred size should be (SxSx(B*E + C))
+    The pred size should be (SxSx(B*E + C))
         S - grid size
         B - Number of bounding boxes (number of predictions) per grid cell
         E - Number of elements predicted per box
@@ -37,25 +62,27 @@ def loss(pred, target, B=2, S=13):
                 max_bb = bb
                 max_iou = i
                 best_conf = conf
-        
+
         return max_bb, max_iou, best_conf
 
     lmbda = 0.5
 
-    l1 = 0
-    l2 = 0
-    l3 = 0
-    l4 = 0
+    target = get_grid_BBs(target, S=7)
+
+    loss_1 = 0 # TODO Also update these names
+    loss_2 = 0
+    loss_3 = 0
+    loss_4 = 0
 
     # iterate over each grid (per image)
     for s1 in range(S):
         for s2 in range(S):    
-            # this should have B instances of [x1, y1, x2, y2, conf]
+            # this should have B instances of [x1, y1, x2, y2, label] # TODO Update this
             # and then class probabilites
 
             arr = pred[s1, s2]
             arr2 = target[s1, s2]
-            x1, y1, x2, y2, gd_conf = arr2
+            x1, y1, x2, y2, gd_label = arr2
             t_bb = [x1, y1, x2, y2]
 
             # TODO check if there are any boxes at all
@@ -67,8 +94,8 @@ def loss(pred, target, B=2, S=13):
             # The BB with the highest IOU (with the GD) will be the box responsible
             # for detecting
 
-            if gd_conf != 0:
-                l1 += (x1 - t_bb[0])**2 + \
+            if gd_label != -1:
+                loss_1 += (x1 - t_bb[0])**2 + \
                     (x2 - t_bb[2])**2 + \
                     (y1 - t_bb[1])**2 + \
                     (y2 - t_bb[3])**2
@@ -79,23 +106,26 @@ def loss(pred, target, B=2, S=13):
             t_bb_h = abs(t_bb[1] - t_bb[3])
             t_bb_w = abs(t_bb[0] - t_bb[2])
 
-            if gd_conf != 0:
-                l2 += (math.sqrt(bb_h) - math.sqrt(t_bb_h))**2 + \
+            if gd_label != -1:
+                loss_2 += (math.sqrt(bb_h) - math.sqrt(t_bb_h))**2 + \
                     (math.sqrt(bb_w) - math.sqrt(t_bb_w))**2
             
-            if gd_conf != 0:
-                l3 += (gd_conf - best_iou)
+
+            # TODO What should we do about these???
+            if gd_label != -1:
+                loss_3 += (gd_conf - best_iou)
             else:
                 # TODO add lambda constant here
-                l3 += (gd_conf - best_iou)
+                loss_3 += (gd_conf - best_iou)
             
 
-            if gd_conf != 0:
+            # TODO Does this operation still make sense?
+            if gd_label != -1:
                 pred_class_probs = arr[5*B:]
                 gd_class_probs = arr[5:]
 
                 for i in range(len(pred_class_probs)):
-                    l4 += (pred_class_probs[i] - gd_class_probs[i])**2
+                    loss_4 += (pred_class_probs[i] - gd_class_probs[i])**2
 
 
-    return (l1 + l2 + l3 + l4)
+    return (loss_1 + loss_2 + loss_3 + loss_4)
