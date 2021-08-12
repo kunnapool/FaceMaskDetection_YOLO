@@ -66,27 +66,33 @@ def nonmax_sup(b1, b2, b1_p, b2_p, is_midpt=False, iou_threshold=0.5):
     return 0
 
 
-# https://stackoverflow.com/questions/44650888/resize-an-image-without-distortion-opencv
-def resize_image_with_BB(image, width, height, BB):
+def resize_image_with_BB(image, width, height, list_BB):
     h = image.shape[0]
     w = image.shape[1]
 
     new_size = (width, height)
 
-    x1, y1, x2, y2 = BB
+    new_BB_list = []
 
-    r_w = width/w
-    r_h = height/h
+    for i in range(len(list_BB)):
 
-    x1 *= r_w
-    x2 *= r_w
+        x1, y1, x2, y2, l = list_BB[i]
 
-    y1 *= r_h
-    y2 *= r_h
+        r_w = width/w
+        r_h = height/h
 
-    new_BB = (int(x1), int(y1), int(x2), int(y2))
 
-    return cv2.resize(image, new_size, interpolation = cv2.INTER_AREA), new_BB
+        x1 *= r_w
+        x2 *= r_w
+
+        y1 *= r_h
+        y2 *= r_h
+
+        new_BB = (int(x1), int(y1), int(x2), int(y2), l)
+
+        new_BB_list.append(new_BB)
+
+    return cv2.resize(image, new_size, interpolation = cv2.INTER_AREA), new_BB_list
 
 """
 References:

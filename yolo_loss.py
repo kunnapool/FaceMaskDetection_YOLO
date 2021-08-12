@@ -3,7 +3,7 @@ from helpers import iou
 import math
 
 
-def _get_grid_BBs(target, S=13):
+def _get_grid_BBs(target, S):
     """
     The incoming target variable is a list of all the
     BBs present in an image
@@ -18,8 +18,8 @@ def _get_grid_BBs(target, S=13):
         mid_x = abs(x1 - x2)/2
         mid_y = abs(y1 - y2)/2
 
-        s1 = int(mid_y/S)
-        s2 = int(mid_x/S)
+        s1 = min(int(mid_y/S), S-1)
+        s2 = min(int(mid_x/S), S-1)
 
         grid_target[s1, s2] = [x1, y1, x2, y2, l]
 
@@ -37,7 +37,7 @@ def _get_softmax(x):
     return l
 
 
-def loss(pred, target, B=2, S=13):
+def loss(pred, target, S, B=1):
     """
     The pred size should be (SxSx(B*E + C))
         S - grid size
@@ -76,7 +76,7 @@ def loss(pred, target, B=2, S=13):
 
     lmbda = 0.5
 
-    target = _get_grid_BBs(target)
+    target = _get_grid_BBs(target, S)
 
     loss_1 = 0 # TODO Also update these names
     loss_2 = 0
@@ -138,7 +138,7 @@ def loss(pred, target, B=2, S=13):
                 loss_4 += -1 * math.log(pred_class_probs[int(gd_label)])
 
 
-    return float((loss_1 + loss_2 + loss_3 + loss_4))
+    return (loss_1 + loss_2 + loss_3 + loss_4)
 
 
 """
