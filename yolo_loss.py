@@ -7,7 +7,6 @@ def _get_grid_BBs(target, S=13):
     """
     The incoming target variable is a list of all the
     BBs present in an image
-
     Assume that the image is divided into SxS grids and figure out of
     which grid does the BB land in
     """
@@ -30,7 +29,7 @@ def _get_softmax(x):
     l = []
     s = 0
     for xi in x:
-        s += np.exp(xi)
+        s += math.e**xi
     
     for xi in x:
         l.append(xi/s)
@@ -45,7 +44,6 @@ def loss(pred, target, B=2, S=13):
         B - Number of bounding boxes (number of predictions) per grid cell
         E - Number of elements predicted per box
         C - Number of classes
-
     Format of predicted elements, E - [x1, y1, w1, h1, conf1, x2... conf_n, class_probs]
         x, y - center point of the BB relative to the grid cell; relative range of [0, 1]
         w, h - width, height of the BB relative to the image; relative range of [0, 1]
@@ -53,7 +51,7 @@ def loss(pred, target, B=2, S=13):
                0 if no obj
     """
 
-    def get_best_box(arr):
+    def get_best_box(arr, t_bb):
         st = 0
         end = 5
         max_bb = []
@@ -78,7 +76,7 @@ def loss(pred, target, B=2, S=13):
 
     lmbda = 0.5
 
-    target = _get_grid_BBs(target, S=7)
+    target = _get_grid_BBs(target)
 
     loss_1 = 0 # TODO Also update these names
     loss_2 = 0
@@ -98,7 +96,7 @@ def loss(pred, target, B=2, S=13):
 
             # TODO check if there are any boxes at all
             # TODO_UPDATE - this might not be needed as every grid predicts B number of BBs
-            best_bb, best_iou, pred_conf = get_best_box(arr)
+            best_bb, best_iou, pred_conf = get_best_box(arr, t_bb)
 
             x1, y1, x2, y2 = best_bb
 
@@ -133,14 +131,14 @@ def loss(pred, target, B=2, S=13):
             # TODO Does this operation still make sense?
             # TODO_UPDATE now calculating cross entropy loss with softmax instead of sse
             if gd_label != -1:
-                pred_class_probs = _get_softmax(arr[5*B:])
-                gd_class_label = arr[5:]
+                a = [float(x) for x in arr[5*B:]]
+                pred_class_probs = _get_softmax(a)
 
                 # -1 because all the probability goes to the gd label
-                loss_4 += -1 * math.log(pred_class_probs[gd_class_label])
+                loss_4 += -1 * math.log(pred_class_probs[int(gd_label)])
 
 
-    return (loss_1 + loss_2 + loss_3 + loss_4)
+    return float((loss_1 + loss_2 + loss_3 + loss_4))
 
 
 """
